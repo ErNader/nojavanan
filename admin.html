@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>پنل مدیریت - هیئت نوجوانان انصارالحسین</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://unpkg.com/feather-icons"></script>
+    <script src="https://cdn.jsdelivr.net/npm/fuse.js/dist/fuse.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+    <div class="admin-layout">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h3>انصارالحسین</h3>
+                <p>پنل مدیریت</p>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="#" class="nav-link active" data-target="user-management">
+                    <i data-feather="users"></i>
+                    <span>مدیریت کاربران</span>
+                </a>
+                <a href="#" class="nav-link" data-target="awards-management">
+                    <i data-feather="award"></i>
+                    <span>مدیریت جوایز</span>
+                </a>
+            </nav>
+            <div class="sidebar-footer">
+                <div id="admin-info">
+                    <span id="admin-role-display" style="font-size: 0.9rem; color: var(--gray-400);"></span>
+                </div>
+                <button id="logout-button" class="logout-button" title="خروج">
+                    <i data-feather="log-out"></i>
+                    <span>خروج</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- User Management Section -->
+            <section id="user-management" class="content-section active">
+                <div class="content-header">
+                    <h2>مدیریت کاربران</h2>
+                    <div class="header-actions">
+                        <span style="font-weight: bold;">حاضرین امروز: </span>
+                        <span id="today-attendance-count" style="font-weight: bold; font-size: 1.2rem; margin-left: 1rem;">0</span>
+                         <button id="export-excel-button" class="icon-button admin1-permission requires-permission" title="خروجی اکسل" style="display: none;"><i data-feather="download"></i></button>
+                        <button id="add-user-btn" class="icon-button admin1-permission requires-permission" title="افزودن کاربر جدید" style="display: none;"><i data-feather="plus-circle"></i></button>
+                    </div>
+                </div>
+
+                 <div class="card">
+                    <div class="card-header">
+                        <h3>لیست کامل شرکت‌کنندگان</h3>
+                         <div class="search-container">
+                             <input type="text" id="user-search-input" placeholder="جستجوی نام یا شماره تلفن...">
+                         </div>
+                    </div>
+                     <div class="card-body">
+                         <div id="users-table-desktop" class="table-container">
+                             <table id="users-table">
+                                 <thead>
+                                     <tr>
+                                         <th>نام و نام خانوادگی</th>
+                                         <th>سن</th>
+                                         <th>تلفن اصلی</th>
+                                         <th>تلفن دوم</th>
+                                         <th>سابقه بیماری</th>
+                                         <th>خروج </th>
+                                         <th>تعداد حاضری</th>
+                                         <th class="actions-header">عملیات</th>
+                                     </tr>
+                                 </thead>
+                                 <tbody id="users-table-body">
+                                     <!-- Data will be loaded here -->
+                                 </tbody>
+                             </table>
+                         </div>
+                         <div id="users-list-mobile">
+                            <!-- Mobile-specific list will be rendered here -->
+                         </div>
+                     </div>
+                 </div>
+            </section>
+
+            <!-- Awards Management Section -->
+            <section id="awards-management" class="content-section">
+                 <div class="content-header">
+                    <h2>مدیریت جوایز</h2>
+                </div>
+                <div class="awards-grid">
+                    <div class="card admin1-permission admin2-permission requires-permission" style="display: none;">
+                        <div class="card-header">
+                            <h3>ثبت جایزه جدید</h3>
+                        </div>
+                        <div class="card-body">
+                            <form id="add-award-form">
+                                <div class="form-group">
+                                     <label for="award-child-search">جستجوی شرکت‌کننده</label>
+                                     <input type="text" id="award-child-search" placeholder="نام را برای جستجو وارد کنید...">
+                                </div>
+                                <div class="form-group">
+                                    <label for="award-child-select">انتخاب شرکت‌کننده</label>
+                                    <select id="award-child-select" required></select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="award-reason">علت جایزه</label>
+                                    <input type="text" id="award-reason" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="award-voucher">نوع بن (مثال: بن خرید کتاب)</label>
+                                    <input type="text" id="award-voucher">
+                                </div>
+                                <div class="form-group">
+                                    <label for="award-type">نوع جایزه (مثال: فرهنگی، ورزشی)</label>
+                                    <input type="text" id="award-type">
+                                </div>
+                                <button type="submit">ثبت جایزه</button>
+                            </form>
+                        </div>
+                    </div>
+                    <div class="card">
+                         <div class="card-header">
+                            <h3>لیست جوایز ثبت‌شده</h3>
+                            <div class="controls">
+                                <input type="text" id="award-search" placeholder="جستجوی جایزه بر اساس نام کاربر یا نام جایزه...">
+                            </div>
+                         </div>
+                         <div class="card-body">
+                            <div id="awards-table-desktop" class="table-container">
+                                <table id="awards-table">
+                                    <thead>
+                                        <tr>
+                                            <th>نام شرکت‌کننده</th>
+                                            <th>علت</th>
+                                            <th>نوع بن</th>
+                                            <th>نوع جایزه</th>
+                                            <th>تاریخ</th>
+                                            <th class="actions-header">عملیات</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="awards-table-body">
+                                        <!-- Awards will be loaded here -->
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div id="awards-list-mobile">
+                                <!-- Mobile awards list will be rendered here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Modals (no change in structure) -->
+    <div id="add-user-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <h2>افزودن کاربر جدید</h2>
+            <form id="add-user-form">
+                <!-- Form fields will be similar to index.html but for admin -->
+                <div class="form-group">
+                    <label for="modal-full-name">نام و نام خانوادگی</label>
+                    <input type="text" id="modal-full-name" name="full_name" required>
+                </div>
+                <div class="form-group">
+                    <label for="modal-age">سن</label>
+                    <input type="number" id="modal-age" name="age">
+                </div>
+                <div class="form-group">
+                    <label for="modal-primary-phone">شماره تلفن ضروری</label>
+                    <input type="tel" id="modal-primary-phone" name="primary_phone" required>
+                </div>
+                 <div class="form-group">
+                    <label for="modal-secondary-phone">شماره تلفن دوم</label>
+                    <input type="tel" id="modal-secondary-phone" name="secondary_phone">
+                </div>
+                <div class="form-group">
+                    <label for="modal-medical-history">بیماری خاص و مراقبت های لازم</label>
+                    <textarea id="modal-medical-history" name="medical_history" rows="2"></textarea>
+                </div>
+                <div class="form-group-checkbox">
+                    <input type="checkbox" id="modal-leave-unaccompanied" name="leave_unaccompanied">
+                    <label for="modal-leave-unaccompanied">خروج </label>
+                </div>
+                <button type="submit">ثبت کاربر</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit User Modal -->
+    <div id="edit-user-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <h2>ویرایش اطلاعات کاربر</h2>
+            <form id="edit-user-form">
+                <input type="hidden" id="edit-user-id">
+                <div class="form-group">
+                    <label for="edit-full-name">نام و نام خانوادگی</label>
+                    <input type="text" id="edit-full-name" name="full_name" required>
+                </div>
+                <div class="form-group">
+                    <label for="edit-age">سن</label>
+                    <input type="number" id="edit-age" name="age">
+                </div>
+                <div class="form-group">
+                    <label for="edit-primary-phone">شماره تلفن ضروری</label>
+                    <input type="tel" id="edit-primary-phone" name="primary_phone" required>
+                </div>
+                 <div class="form-group">
+                    <label for="edit-secondary-phone">شماره تلفن دوم</label>
+                    <input type="tel" id="edit-secondary-phone" name="secondary_phone">
+                </div>
+                <div class="form-group">
+                    <label for="edit-medical-history">بیماری خاص و مراقبت های لازم</label>
+                    <textarea id="edit-medical-history" name="medical_history" rows="2"></textarea>
+                </div>
+                <div class="form-group-checkbox">
+                    <input type="checkbox" id="edit-leave-unaccompanied" name="leave_unaccompanied">
+                    <label for="edit-leave-unaccompanied">خروج </label>
+                </div>
+                <button type="submit">ذخیره تغییرات</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add/Edit Servant Modal -->
+    <div id="servant-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <h2 id="servant-modal-title">افزودن خادم جدید</h2>
+            <form id="servant-form">
+                <input type="hidden" id="servant-id">
+                <div class="form-group">
+                    <label for="servant-full-name">نام و نام خانوادگی</label>
+                    <input type="text" id="servant-full-name" required>
+                </div>
+                <div class="form-group">
+                    <label for="servant-password">رمز عبور</label>
+                    <input type="text" id="servant-password">
+                    <small>برای ویرایش، فقط در صورت تمایل به تغییر رمز عبور، این فیلد را پر کنید.</small>
+                </div>
+                <div class="form-group">
+                    <label for="servant-role">سطح دسترسی</label>
+                    <select id="servant-role" required>
+                        <option value="readonly">مشاهده‌گر</option>
+                        <option value="awards_admin">مدیر جوایز</option>
+                        <option value="user_admin">مدیر کاربران</option>
+                        <option value="superadmin">مدیر کل</option>
+                    </select>
+                </div>
+                <button type="submit">ذخیره</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Mobile Navigation Bar -->
+    <nav class="mobile-nav">
+        <a href="#" class="nav-link active" data-target="user-management">
+            <i data-feather="users"></i>
+            <span>کاربران</span>
+        </a>
+        <a href="#" class="nav-link" data-target="awards-management">
+            <i data-feather="award"></i>
+            <span>جوایز</span>
+        </a>
+    </nav>
+    
+    <div id="toast-notification" class="toast"></div>
+
+    <script type="module" src="js/admin.js"></script>
+    <script>
+      feather.replace();
+    </script>
+</body>
+</html> 
