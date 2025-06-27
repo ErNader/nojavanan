@@ -123,9 +123,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 full_name: fullNameInput.value.trim(),
                 age: parseInt(ageInput.value, 10),
                 primary_parent_phone: primaryPhoneInput.value.trim(),
-                secondary_parent_phone: secondaryPhoneInput.value.trim(),
-                medical_history: document.getElementById('medical-history').value.trim(),
-                can_leave_unaccompanied: document.getElementById('leave-unaccompanied').checked,
+                secondary_parent_phone: secondaryPhoneInput.value.trim() || null,
+                medical_history: document.getElementById('medical_history').value.trim() || null,
+                can_leave_unaccompanied: false,
             };
 
             const { error: insertError } = await supabase
@@ -140,15 +140,10 @@ document.addEventListener('DOMContentLoaded', () => {
                      showGeneralMessage(registrationForm, 'خطا در ثبت اطلاعات. لطفا دوباره تلاش کنید.', 'error');
                 }
             } else {
-                showGeneralMessage(registrationForm, 'ثبت نام فرزند شما با موفقیت انجام شد.', 'success');
-                registrationForm.reset();
-                // Clear validation styles after successful submission
-                [fullNameInput, ageInput, primaryPhoneInput, secondaryPhoneInput].forEach(input => {
-                    input.classList.remove('invalid-input');
-                });
-                fullNameError.textContent = '';
-                ageError.textContent = '';
-                phoneError.textContent = '';
+                showGeneralMessage(registrationForm, 'ثبت نام فرزند شما با موفقیت انجام شد. صفحه تا لحظاتی دیگر مجددا بارگذاری می‌شود.', 'success');
+                setTimeout(() => {
+                    window.location.reload();
+                }, 3000);
             }
             
             submitButton.disabled = false;
