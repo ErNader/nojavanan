@@ -121,9 +121,11 @@ function applyPermissions() {
 
 function setupEventListeners() {
     document.querySelectorAll('.modal').forEach(modal => {
-        modal.querySelector('.close-button').onclick = () => modal.style.display = 'none';
+        modal.querySelector('.close-button').onclick = () => modal.classList.remove('is-visible');
     });
-    window.onclick = e => document.querySelectorAll('.modal').forEach(m => { if (e.target === m) m.style.display = 'none'; });
+    window.onclick = e => document.querySelectorAll('.modal').forEach(m => {
+        if (e.target === m) m.classList.remove('is-visible');
+    });
 
     document.querySelectorAll('.nav-link').forEach(link => {
         link.addEventListener('click', e => {
@@ -230,7 +232,7 @@ async function handleUserForm(e, isEdit = false) {
         if (error) {
             alert('خطا در ذخیره اطلاعات: ' + error.message);
         } else {
-            form.closest('.modal').style.display = 'none';
+            form.closest('.modal').classList.remove('is-visible');
             fetchUsers();
         }
     } else {
@@ -506,7 +508,7 @@ function openUserModal(id = null) {
         form.querySelector('[name="medical_history"]').value = user.medical_history;
         form.querySelector('[name="leave_unaccompanied"]').checked = user.can_leave_unaccompanied;
     }
-    modal.style.display = 'flex';
+    modal.classList.add('is-visible');
 }
 
 function populateDateSelector() {

@@ -50,8 +50,11 @@
                             <label for="event-date-selector" style="font-weight: bold;">شب مراسم:</label>
                             <select id="event-date-selector"></select>
                         </div>
-                        <span style="font-weight: bold; margin-left: 1rem;">حاضرین: </span>
-                        <span id="attendance-count" style="font-weight: bold; font-size: 1.2rem;">0</span>
+                        <div style="flex-grow: 1;"></div>
+                        <div class="attendance-counter">
+                            <span style="font-weight: bold;">حاضرین: </span>
+                            <span id="attendance-count" style="font-weight: bold; font-size: 1.2rem;">0</span>
+                        </div>
                          <button id="export-excel-button" class="icon-button admin1-permission requires-permission" title="خروجی اکسل" style="display: none;"><i data-feather="download"></i></button>
                         <button id="add-user-btn" class="icon-button admin1-permission requires-permission" title="افزودن کاربر جدید" style="display: none;"><i data-feather="plus-circle"></i></button>
                     </div>
