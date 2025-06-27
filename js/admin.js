@@ -12,6 +12,36 @@ if (!adminRole) {
 const ROLES = { ADMIN1: 'admin1', ADMIN2: 'admin2', ADMIN3: 'admin3' };
 const ROLE_MAP = { [ROLES.ADMIN1]: 'مدیر کل', [ROLES.ADMIN2]: 'مدیر جوایز', [ROLES.ADMIN3]: 'مشاهده‌گر' };
 
+// --- Event Dates ---
+// Helper to get date strings in 'YYYY-MM-DD' format
+function getLocalDate(date) {
+    const offset = date.getTimezoneOffset();
+    const adjustedDate = new Date(date.getTime() - (offset * 60 * 1000));
+    return adjustedDate.toISOString().split('T')[0];
+}
+
+// --- Configuration for Event Nights ---
+const TOTAL_EVENT_NIGHTS = 11;
+// Set the date for the *first* night of the event.
+// All other nights will be calculated from this date.
+const EVENT_START_DATE = new Date();
+// Assuming today is the second day, so the event started yesterday.
+EVENT_START_DATE.setDate(EVENT_START_DATE.getDate() - 1); 
+
+const todayStr = getLocalDate(new Date());
+
+const eventNights = Array.from({ length: TOTAL_EVENT_NIGHTS }, (_, i) => {
+    const nightDate = new Date(EVENT_START_DATE);
+    nightDate.setDate(EVENT_START_DATE.getDate() + i);
+    const nightDateStr = getLocalDate(nightDate);
+    const dayNumber = i + 1;
+
+    return {
+        name: `شب ${dayNumber}` + (nightDateStr === todayStr ? ' (امروز)' : ''),
+        date: nightDateStr
+    };
+});
+
 // --- DOM Elements ---
 const roleDisplay = document.getElementById('admin-role-display');
 const logoutButton = document.getElementById('logout-button');
@@ -27,23 +57,26 @@ const awardsTableBody = document.getElementById('awards-table')?.querySelector('
 const childSelect = document.getElementById('award-child-select');
 const awardChildSearch = document.getElementById('award-child-search');
 const exportExcelButton = document.getElementById('export-excel-button');
-const todayAttendanceCount = document.getElementById('today-attendance-count');
+const attendanceCount = document.getElementById('attendance-count');
 const usersTable = document.getElementById('users-table')?.querySelector('tbody');
 const awardsTable = document.getElementById('awards-table')?.querySelector('tbody');
 const ceremonyTimeInput = document.getElementById('ceremony-time');
 const setTimeButton = document.getElementById('set-time-btn');
-const todayAttendanceCountElem = document.getElementById('today-attendance-count');
+const attendanceCountElem = document.getElementById('attendance-count');
+const dateSelector = document.getElementById('event-date-selector');
 
 // --- State ---
 let allUsers = [];
 let fuse;
 let allAwards = [];
 let awardsFuse;
+let selectedNightDate = eventNights.find(n => n.date === getLocalDate(new Date()))?.date || eventNights[0].date;
 
 // --- Initialization ---
 document.addEventListener('DOMContentLoaded', () => {
     setupEventListeners();
     applyPermissions();
+    populateDateSelector(); // Populate date selector first
     fetchAllData();
     feather.replace();
 });
@@ -100,6 +133,13 @@ function setupEventListeners() {
         });
     });
 
+    if(dateSelector) {
+        dateSelector.addEventListener('change', e => {
+            selectedNightDate = e.target.value;
+            renderUsers(allUsers); // Re-render users for the selected date
+        });
+    }
+
     if(document.getElementById('add-user-btn'))
         document.getElementById('add-user-btn').onclick = () => openUserModal();
     
@@ -147,10 +187,6 @@ async function fetchUsers() {
     if (error) return console.error('Error fetching users:', error);
     allUsers = data;
     
-    const today = new Date().toISOString().slice(0, 10);
-    const attendedToday = allUsers.filter(u => u.attendance.some(a => a.ceremony_date === today)).length;
-    todayAttendanceCount.textContent = attendedToday;
-
     fuse = new Fuse(allUsers, { keys: ['full_name', 'primary_parent_phone'], threshold: 0.4, ignoreLocation: true });
     renderUsers(allUsers);
     populateChildrenSelect(allUsers);
@@ -203,10 +239,9 @@ async function handleUserForm(e, isEdit = false) {
             alert('خطا در افزودن کاربر: ' + error.message);
         } else {
             if (newChild) {
-                const today = new Date().toISOString().slice(0, 10);
                 const { error: attendanceError } = await supabase.from('attendance').insert({ 
                     child_id: newChild.id,
-                    ceremony_date: today
+                    ceremony_date: selectedNightDate // Use selected night date
                 });
                 if (attendanceError) {
                     if (attendanceError.code === '23505') { 
@@ -245,33 +280,69 @@ async function handleAwardForm(e) {
 }
 
 function handleExcelExport() {
-     const dataToExport = allUsers.map(user => ({
-        'نام و نام خانوادگی': user.full_name, 'سن': user.age, 'تلفن اصلی': user.primary_parent_phone, 'تلفن دوم': user.secondary_parent_phone || '', 'سابقه بیماری': user.medical_history || '',
-        'خروج بدون همراه': user.can_leave_unaccompanied ? 'بله' : 'خیر', 'تعداد کل حاضری': user.attendance?.length || 0
-    }));
-    const ws = XLSX.utils.json_to_sheet(dataToExport);
-    ws['!cols'] = [ { wch: 25 }, { wch: 5 }, { wch: 15 }, { wch: 15 }, { wch: 30 }, { wch: 15 }, { wch: 15 } ];
+    const headers = [
+        'نام و نام خانوادگی', 'سن', 'تلفن اصلی', 'تلفن دوم', 'سابقه بیماری',
+        'خروج بدون همراه', 'تعداد کل حاضری'
+    ];
+
+    // Add each event night as a header
+    eventNights.forEach(night => headers.push(night.name));
+
+    const dataToExport = allUsers.map(user => {
+        const userRow = {
+            'نام و نام خانوادگی': user.full_name,
+            'سن': user.age || '',
+            'تلفن اصلی': user.primary_parent_phone,
+            'تلفن دوم': user.secondary_parent_phone || '',
+            'سابقه بیماری': user.medical_history || '',
+            'خروج بدون همراه': user.can_leave_unaccompanied ? 'بله' : 'خیر',
+            'تعداد کل حاضری': user.attendance?.length || 0,
+        };
+
+        // For each night, check attendance and mark as 'حاضر' or 'غایب'
+        eventNights.forEach(night => {
+            userRow[night.name] = user.attendance.some(a => a.ceremony_date === night.date) ? 'حاضر' : 'غایب';
+        });
+
+        return userRow;
+    });
+
+    const ws = XLSX.utils.json_to_sheet(dataToExport, { header: headers });
+
+    // Set column widths
+    const colWidths = [
+        { wch: 25 }, // Name
+        { wch: 5 },  // Age
+        { wch: 15 }, // Phone 1
+        { wch: 15 }, // Phone 2
+        { wch: 30 }, // Medical
+        { wch: 15 }, // Leave alone
+        { wch: 15 }, // Total
+    ];
+    eventNights.forEach(() => colWidths.push({ wch: 15 })); // Width for each night column
+    ws['!cols'] = colWidths;
+
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'شرکت کننندگان');
-    XLSX.writeFile(wb, 'لیست_شرکت_کنندگان.xlsx');
+    XLSX.utils.book_append_sheet(wb, ws, 'حضور و غیاب');
+    XLSX.writeFile(wb, 'لیست_حضور_و_غیاب_کامل.xlsx');
 }
 
 function renderUsers(users) {
-    renderUsersForDesktop(users);
-    renderUsersForMobile(users);
+    updateAttendanceCount(users, selectedNightDate);
+    renderUsersForDesktop(users, selectedNightDate);
+    renderUsersForMobile(users, selectedNightDate);
     feather.replace();
     applyPermissions();
 }
 
-function renderUsersForDesktop(users) {
-    const today = new Date().toISOString().slice(0, 10);
+function renderUsersForDesktop(users, ceremonyDate) {
     usersTableBody.innerHTML = users.map(user => {
-        const hasAttendedToday = user.attendance.some(a => a.ceremony_date === today);
-        const attendanceButton = (adminRole === ROLES.ADMIN1) ? `
+        const hasAttended = user.attendance.some(a => a.ceremony_date === ceremonyDate);
+        const attendanceButton = (adminRole === ROLES.ADMIN1 || adminRole === ROLES.ADMIN2) ? `
             <button 
-                class="attendance-toggle ${hasAttendedToday ? 'present' : 'absent'}" 
-                onclick="window.toggleAttendance(${user.id}, ${hasAttendedToday})">
-                ${hasAttendedToday ? 'حاضر' : 'غایب'}
+                class="attendance-toggle ${hasAttended ? 'present' : 'absent'}" 
+                onclick="toggleAttendance(${user.id}, ${hasAttended}, '${ceremonyDate}')">
+                ${hasAttended ? 'حاضر' : 'غایب'}
             </button>
         ` : '';
 
@@ -286,26 +357,25 @@ function renderUsersForDesktop(users) {
                 <td>${user.attendance?.length || 0}</td>
                 <td class="actions">
                     ${attendanceButton}
-                    <button class="icon-button admin1-permission requires-permission" onclick="window.editUser(${user.id})" title="ویرایش" style="display:none;"><i data-feather="edit"></i></button>
-                    <button class="icon-button admin1-permission requires-permission" onclick="window.deleteUser(${user.id})" title="حذف" style="display:none;"><i data-feather="trash-2"></i></button>
+                    <button class="icon-button admin1-permission requires-permission" onclick="editUser(${user.id})" title="ویرایش" style="display:none;"><i data-feather="edit"></i></button>
+                    <button class="icon-button admin1-permission requires-permission" onclick="deleteUser(${user.id})" title="حذف" style="display:none;"><i data-feather="trash-2"></i></button>
                 </td>
             </tr>
         `;
     }).join('');
 }
 
-function renderUsersForMobile(users) {
+function renderUsersForMobile(users, ceremonyDate) {
     const mobileContainer = document.getElementById('users-list-mobile');
     if (!mobileContainer) return;
-    const today = new Date().toISOString().slice(0, 10);
 
     mobileContainer.innerHTML = users.map(user => {
-        const hasAttendedToday = user.attendance.some(a => a.ceremony_date === today);
-        const attendanceButton = (adminRole === ROLES.ADMIN1) ? `
+        const hasAttended = user.attendance.some(a => a.ceremony_date === ceremonyDate);
+        const attendanceButton = (adminRole === ROLES.ADMIN1 || adminRole === ROLES.ADMIN2) ? `
             <button 
-                class="attendance-toggle ${hasAttendedToday ? 'present' : 'absent'}" 
-                onclick="window.toggleAttendance(${user.id}, ${hasAttendedToday})">
-                ${hasAttendedToday ? 'حاضر' : 'غایب'}
+                class="attendance-toggle ${hasAttended ? 'present' : 'absent'}" 
+                onclick="toggleAttendance(${user.id}, ${hasAttended}, '${ceremonyDate}')">
+                ${hasAttended ? 'حاضر' : 'غایب'}
             </button>
         ` : '';
 
@@ -344,8 +414,8 @@ function renderUsersForMobile(users) {
                 <div class="user-card-footer">
                     ${attendanceButton}
                     <div class="actions">
-                        <button class="icon-button admin1-permission requires-permission" onclick="window.editUser(${user.id})" title="ویرایش" style="display:none;"><i data-feather="edit"></i></button>
-                        <button class="icon-button admin1-permission requires-permission" onclick="window.deleteUser(${user.id})" title="حذف" style="display:none;"><i data-feather="trash-2"></i></button>
+                        <button class="icon-button admin1-permission requires-permission" onclick="editUser(${user.id})" title="ویرایش" style="display:none;"><i data-feather="edit"></i></button>
+                        <button class="icon-button admin1-permission requires-permission" onclick="deleteUser(${user.id})" title="حذف" style="display:none;"><i data-feather="trash-2"></i></button>
                     </div>
                 </div>
             </div>
@@ -369,7 +439,7 @@ function renderAwardsForDesktop(awards) {
             <td>${award.award_type || '---'}</td>
             <td>${new Date(award.awarded_at).toLocaleDateString('fa-IR')}</td>
             <td class="actions">
-                <button class="icon-button admin1-permission admin2-permission requires-permission" onclick="window.deleteAward(${award.id})" title="حذف" style="display:none;"><i data-feather="trash-2"></i></button>
+                <button class="icon-button admin1-permission admin2-permission requires-permission" onclick="deleteAward(${award.id})" title="حذف" style="display:none;"><i data-feather="trash-2"></i></button>
             </td>
         </tr>
     `).join('');
@@ -403,7 +473,7 @@ function renderAwardsForMobile(awards) {
                 }
             </div>
             <div class="award-card-footer">
-                 <button class="icon-button admin1-permission admin2-permission requires-permission" onclick="window.deleteAward(${award.id})" title="حذف" style="display:none;">
+                 <button class="icon-button admin1-permission admin2-permission requires-permission" onclick="deleteAward(${award.id})" title="حذف" style="display:none;">
                     <i data-feather="trash-2"></i>
                     <span>حذف جایزه</span>
                 </button>
@@ -436,19 +506,31 @@ function openUserModal(id = null) {
         form.querySelector('[name="medical_history"]').value = user.medical_history;
         form.querySelector('[name="leave_unaccompanied"]').checked = user.can_leave_unaccompanied;
     }
-    modal.style.display = 'block';
+    modal.style.display = 'flex';
+}
+
+function populateDateSelector() {
+    if (!dateSelector) return;
+    dateSelector.innerHTML = eventNights
+        .map(night => `<option value="${night.date}" ${night.date === selectedNightDate ? 'selected' : ''}>${night.name}</option>`)
+        .join('');
+}
+
+function updateAttendanceCount(users, date) {
+    if (!attendanceCount) return;
+    const count = users.filter(u => u.attendance.some(a => a.ceremony_date === date)).length;
+    attendanceCount.textContent = count;
 }
 
 // Make functions globally accessible
-window.toggleAttendance = async (userId, hasAttendedToday) => {
-    const today = new Date().toISOString().slice(0, 10);
-    if (hasAttendedToday) {
+window.toggleAttendance = async (userId, hasAttended, ceremonyDate) => {
+    if (hasAttended) {
         // Delete the record
         const { error } = await supabase
             .from('attendance')
             .delete()
             .eq('child_id', userId)
-            .eq('ceremony_date', today);
+            .eq('ceremony_date', ceremonyDate);
         if (error) {
             alert('خطا در حذف حاضری: ' + error.message);
         }
@@ -456,7 +538,7 @@ window.toggleAttendance = async (userId, hasAttendedToday) => {
         // Insert the record
         const { error } = await supabase
             .from('attendance')
-            .insert({ child_id: userId, ceremony_date: today });
+            .insert({ child_id: userId, ceremony_date: ceremonyDate });
         if (error) {
             alert('خطا در ثبت حاضری: ' + error.message);
         }
@@ -479,6 +561,7 @@ window.deleteAward = async (id) => {
         else fetchAwards();
     }
 };
+window.openUserModal = openUserModal;
 
 function normalizeString(str) { return str ? str.replace(/ي/g, 'ی').replace(/ك/g, 'ک') : ''; }
 

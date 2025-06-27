@@ -46,8 +46,12 @@
                 <div class="content-header">
                     <h2>مدیریت کاربران</h2>
                     <div class="header-actions">
-                        <span style="font-weight: bold;">حاضرین امروز: </span>
-                        <span id="today-attendance-count" style="font-weight: bold; font-size: 1.2rem; margin-left: 1rem;">0</span>
+                        <div class="date-selector-container">
+                            <label for="event-date-selector" style="font-weight: bold;">شب مراسم:</label>
+                            <select id="event-date-selector"></select>
+                        </div>
+                        <span style="font-weight: bold; margin-left: 1rem;">حاضرین: </span>
+                        <span id="attendance-count" style="font-weight: bold; font-size: 1.2rem;">0</span>
                          <button id="export-excel-button" class="icon-button admin1-permission requires-permission" title="خروجی اکسل" style="display: none;"><i data-feather="download"></i></button>
                         <button id="add-user-btn" class="icon-button admin1-permission requires-permission" title="افزودن کاربر جدید" style="display: none;"><i data-feather="plus-circle"></i></button>
                     </div>
@@ -226,36 +230,6 @@
                     <label for="edit-leave-unaccompanied">خروج </label>
                 </div>
                 <button type="submit">ذخیره تغییرات</button>
-            </form>
-        </div>
-    </div>
-
-    <!-- Add/Edit Servant Modal -->
-    <div id="servant-modal" class="modal">
-        <div class="modal-content">
-            <span class="close-button">&times;</span>
-            <h2 id="servant-modal-title">افزودن خادم جدید</h2>
-            <form id="servant-form">
-                <input type="hidden" id="servant-id">
-                <div class="form-group">
-                    <label for="servant-full-name">نام و نام خانوادگی</label>
-                    <input type="text" id="servant-full-name" required>
-                </div>
-                <div class="form-group">
-                    <label for="servant-password">رمز عبور</label>
-                    <input type="text" id="servant-password">
-                    <small>برای ویرایش، فقط در صورت تمایل به تغییر رمز عبور، این فیلد را پر کنید.</small>
-                </div>
-                <div class="form-group">
-                    <label for="servant-role">سطح دسترسی</label>
-                    <select id="servant-role" required>
-                        <option value="readonly">مشاهده‌گر</option>
-                        <option value="awards_admin">مدیر جوایز</option>
-                        <option value="user_admin">مدیر کاربران</option>
-                        <option value="superadmin">مدیر کل</option>
-                    </select>
-                </div>
-                <button type="submit">ذخیره</button>
             </form>
         </div>
     </div>
