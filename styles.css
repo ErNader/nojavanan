@@ -167,6 +167,19 @@ body {
     align-items: center;
     gap: 1.5rem;
     flex-grow: 1;
+    justify-content: space-between;
+}
+
+.header-right-group {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.header-buttons {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
 }
 
 .attendance-counter {
@@ -433,6 +446,25 @@ td .icon-button { padding: 0.25rem; }
         flex-direction: column;
         align-items: flex-start;
         gap: 1rem;
+    }
+    .header-actions, .header-right-group {
+        flex-direction: column;
+        align-items: flex-start;
+        width: 100%;
+        gap: 1rem;
+    }
+    .header-right-group {
+        align-items: stretch; /* Make items full width */
+    }
+    .attendance-counter {
+        justify-content: space-between;
+        padding: 0.75rem;
+        background-color: var(--gray-100);
+        border-radius: 0.5rem;
+        width: 100%;
+    }
+    .header-buttons {
+        justify-content: flex-end;
     }
     .search-container input {
         width: 100%;
